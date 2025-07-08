@@ -2,11 +2,14 @@
 
 # EchoGarden 動画作成ツール ランチャー
 
+# Tkinterの非推奨警告を抑制
+export TK_SILENCE_DEPRECATION=1
+
 # スクリプトのディレクトリに移動
 cd "$(dirname "$0")"
 
 # Pythonのバージョンをチェック
-python_version=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+python_version=$(python --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
 required_version="3.7"
 
 if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
@@ -31,4 +34,4 @@ fi
 
 # アプリケーションを起動
 echo "EchoGarden 動画作成ツールを起動中..."
-/usr/bin/python3 video_creator.py 
+python video_creator.py 

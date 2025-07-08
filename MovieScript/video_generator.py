@@ -60,13 +60,23 @@ class VideoGenerator:
         
         for path in possible_paths:
             try:
+                print(f"FFmpegを確認中: {path}")
                 result = subprocess.run([path, '-version'], 
-                                      capture_output=True, text=True)
+                                      capture_output=True, text=True, timeout=10)
                 if result.returncode == 0:
+                    print(f"FFmpegが見つかりました: {path}")
                     return path
             except FileNotFoundError:
+                print(f"FFmpegが見つかりません: {path}")
+                continue
+            except subprocess.TimeoutExpired:
+                print(f"FFmpegの確認がタイムアウトしました: {path}")
+                continue
+            except Exception as e:
+                print(f"FFmpegの確認でエラー: {path} - {str(e)}")
                 continue
         
+        print("FFmpegが見つかりませんでした")
         raise FileNotFoundError("FFmpegが見つかりません。FFmpegをインストールしてください。")
     
     def create_temp_directory(self):
@@ -82,21 +92,24 @@ class VideoGenerator:
             self.temp_dir = None
     
     def get_audio_duration(self, audio_file):
-        """音声ファイルの長さを取得"""
-        cmd = [
-            self.ffmpeg_path, '-i', audio_file,
-            '-show_entries', 'format=duration',
-            '-v', 'quiet', '-of', 'csv=p=0'
-        ]
-        
+        """音声ファイルの長さを取得（リターンコード無視版）"""
+        cmd = [self.ffmpeg_path, '-i', audio_file]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0:
-                return float(result.stdout.strip())
-        except:
-            pass
-        
-        return 0
+            # リターンコードに関係なくstderrをパース
+            for line in result.stderr.split('\n'):
+                if 'Duration:' in line:
+                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
+                    time_parts = duration_str.split(':')
+                    hours = int(time_parts[0])
+                    minutes = int(time_parts[1])
+                    seconds = float(time_parts[2])
+                    total_seconds = hours * 3600 + minutes * 60 + seconds
+                    return total_seconds
+            return 0
+        except Exception as e:
+            print(f"音声ファイルの長さ取得でエラー: {e}")
+            return 0
     
     def create_single_video(self, bgm_file, background_files, output_dir, title=""):
         """単曲動画を作成"""
@@ -404,13 +417,17 @@ class VideoGenerator:
             print("音声をトリム中...")
             
             # 音声を指定時間にトリム
-            trimmed_audio_file = os.path.join(temp_dir, "trimmed_audio.mp3")
-            
+            trimmed_audio_file = os.path.join(temp_dir, "trimmed_audio.aac")
+            fade_sec = 1
+            afade_filter = f"afade=t=in:st=0:d={fade_sec},afade=t=out:st={duration_seconds-fade_sec}:d={fade_sec}"
             cmd_trim = [
                 self.ffmpeg_path,
                 '-i', bgm_file,
+                '-map', 'a:0',
+                '-vn',
                 '-t', str(duration_seconds),
-                '-c:a', 'aac',
+                '-af', afade_filter,
+                '-acodec', 'aac',
                 '-y',
                 trimmed_audio_file
             ]
