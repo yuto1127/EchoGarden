@@ -31,6 +31,7 @@ class VideoCreatorApp:
         self.melody_files = []
         self.create_short_version = tk.BooleanVar(value=False)
         self.short_duration_seconds = tk.IntVar(value=30)
+        self.video_title = tk.StringVar()
         
         # 設定ファイルの読み込み
         self.config_file = Path(__file__).parent / "config.json"
@@ -47,6 +48,7 @@ class VideoCreatorApp:
                     self.output_directory.set(config.get('output_directory', ''))
                     self.create_short_version.set(config.get('create_short_version', False))
                     self.short_duration_seconds.set(config.get('short_duration_seconds', 30))
+                    self.video_title.set(config.get('video_title', ''))
             except:
                 pass
     
@@ -55,7 +57,8 @@ class VideoCreatorApp:
         config = {
             'output_directory': self.output_directory.get(),
             'create_short_version': self.create_short_version.get(),
-            'short_duration_seconds': self.short_duration_seconds.get()
+            'short_duration_seconds': self.short_duration_seconds.get(),
+            'video_title': self.video_title.get()
         }
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -74,38 +77,58 @@ class VideoCreatorApp:
                                font=('Arial', 16, 'bold'))
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
         
+        # タイトル入力セクション
+        self.create_title_section(main_frame, 1)
+        
         # BGM選択セクション
-        self.create_bgm_section(main_frame, 1)
+        self.create_bgm_section(main_frame, 2)
         
         # 背景画像選択セクション
-        self.create_background_section(main_frame, 2)
+        self.create_background_section(main_frame, 3)
         
         # 動画タイプ選択セクション
-        self.create_video_type_section(main_frame, 3)
+        self.create_video_type_section(main_frame, 4)
         
         # ショートバージョン設定セクション
-        self.create_short_version_section(main_frame, 4)
+        self.create_short_version_section(main_frame, 5)
         
         # 出力設定セクション
-        self.create_output_section(main_frame, 5)
+        self.create_output_section(main_frame, 6)
         
         # 作成ボタン
         create_button = ttk.Button(main_frame, text="動画を作成", 
                                   command=self.create_video, style='Accent.TButton')
-        create_button.grid(row=6, column=0, columnspan=3, pady=20)
+        create_button.grid(row=7, column=0, columnspan=3, pady=20)
         
         # プログレスバー
         self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
-        self.progress.grid(row=7, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        self.progress.grid(row=8, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
         
         # ステータスラベル
         self.status_label = ttk.Label(main_frame, text="準備完了")
-        self.status_label.grid(row=8, column=0, columnspan=3)
+        self.status_label.grid(row=9, column=0, columnspan=3)
         
         # グリッドの重み設定
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
+    
+    def create_title_section(self, parent, row):
+        """タイトル入力セクションを作成"""
+        # タイトル入力フレーム
+        title_frame = ttk.LabelFrame(parent, text="動画タイトル", padding="10")
+        title_frame.grid(row=row, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(0, 10))
+        title_frame.columnconfigure(1, weight=1)
+        
+        ttk.Label(title_frame, text="タイトル:").grid(row=0, column=0, sticky=tk.W, padx=(0, 10))
+        
+        title_entry = ttk.Entry(title_frame, textvariable=self.video_title, width=50)
+        title_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=(0, 10))
+        
+        # 説明ラベル
+        info_label = ttk.Label(title_frame, text="※ ファイル名に使用されます（特殊文字は自動的に除去、重複時は番号付きになります）", 
+                              font=('Arial', 9), foreground='gray')
+        info_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(5, 0))
     
     def create_bgm_section(self, parent, row):
         """BGM選択セクションを作成"""
@@ -303,6 +326,10 @@ class VideoCreatorApp:
     
     def validate_inputs(self):
         """入力値の検証"""
+        if not self.video_title.get().strip():
+            messagebox.showerror("エラー", "動画タイトルを入力してください。")
+            return False
+        
         if not self.bgm_file.get():
             messagebox.showerror("エラー", "BGMファイルを選択してください。")
             return False
@@ -347,11 +374,14 @@ class VideoCreatorApp:
             generator = VideoGenerator()
             
             video_type = self.video_type.get()
+            video_title = self.video_title.get().strip()
+            
             if video_type == "single":
                 generator.create_single_video(
                     self.bgm_file.get(),
                     self.background_files,
-                    self.output_directory.get()
+                    self.output_directory.get(),
+                    video_title
                 )
                 # ショートバージョンも作成
                 if self.create_short_version.get():
@@ -359,14 +389,16 @@ class VideoCreatorApp:
                         self.bgm_file.get(),
                         self.background_files,
                         self.output_directory.get(),
-                        self.short_duration_seconds.get()
+                        self.short_duration_seconds.get(),
+                        video_title
                     )
             elif video_type == "loop":
                 generator.create_loop_video(
                     self.bgm_file.get(),
                     self.background_files,
                     self.output_directory.get(),
-                    self.duration_minutes.get()
+                    self.duration_minutes.get(),
+                    video_title
                 )
                 # ショートバージョンも作成
                 if self.create_short_version.get():
@@ -374,13 +406,15 @@ class VideoCreatorApp:
                         self.bgm_file.get(),
                         self.background_files,
                         self.output_directory.get(),
-                        self.short_duration_seconds.get()
+                        self.short_duration_seconds.get(),
+                        video_title
                     )
             elif video_type == "melody":
                 generator.create_melody_video(
                     self.melody_files,
                     self.background_files,
-                    self.output_directory.get()
+                    self.output_directory.get(),
+                    video_title
                 )
                 # メドレーのショートバージョンは作成しない（複雑すぎるため）
             

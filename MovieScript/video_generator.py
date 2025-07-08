@@ -9,6 +9,7 @@ import os
 import subprocess
 import tempfile
 import shutil
+import re
 from pathlib import Path
 from datetime import datetime
 import json
@@ -18,6 +19,34 @@ class VideoGenerator:
     def __init__(self):
         self.temp_dir = None
         self.ffmpeg_path = self.find_ffmpeg()
+        
+    def sanitize_filename(self, filename):
+        """ファイル名を安全にする（特殊文字を除去）"""
+        # ファイル名に使用できない文字を除去または置換
+        filename = re.sub(r'[<>:"/\\|?*]', '', filename)
+        # 複数のスペースを単一のスペースに
+        filename = re.sub(r'\s+', ' ', filename)
+        # 先頭と末尾のスペースを除去
+        filename = filename.strip()
+        # 空文字列の場合はデフォルト名を返す
+        if not filename:
+            filename = "untitled"
+        return filename
+    
+    def get_unique_filename(self, base_path, filename):
+        """重複しないファイル名を生成"""
+        if not os.path.exists(os.path.join(base_path, filename)):
+            return filename
+        
+        # 拡張子を分離
+        name, ext = os.path.splitext(filename)
+        counter = 1
+        
+        while True:
+            new_filename = f"{name}_{counter}{ext}"
+            if not os.path.exists(os.path.join(base_path, new_filename)):
+                return new_filename
+            counter += 1
         
     def find_ffmpeg(self):
         """FFmpegのパスを検索"""
@@ -69,7 +98,7 @@ class VideoGenerator:
         
         return 0
     
-    def create_single_video(self, bgm_file, background_files, output_dir):
+    def create_single_video(self, bgm_file, background_files, output_dir, title=""):
         """単曲動画を作成"""
         print("単曲動画を作成中...")
         
@@ -84,7 +113,13 @@ class VideoGenerator:
             
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = os.path.join(output_dir, f"single_video_{timestamp}.mp4")
+            safe_title = self.sanitize_filename(title)
+            if safe_title:
+                filename = f"{safe_title}.mp4"
+                filename = self.get_unique_filename(output_dir, filename)
+                output_file = os.path.join(output_dir, filename)
+            else:
+                output_file = os.path.join(output_dir, f"single_video_{timestamp}.mp4")
             
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
@@ -116,7 +151,7 @@ class VideoGenerator:
         finally:
             self.cleanup_temp_directory()
     
-    def create_loop_video(self, bgm_file, background_files, output_dir, duration_minutes):
+    def create_loop_video(self, bgm_file, background_files, output_dir, duration_minutes, title=""):
         """耐久動画を作成"""
         print(f"耐久動画を作成中... ({duration_minutes}分)")
         
@@ -163,7 +198,13 @@ class VideoGenerator:
             
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = os.path.join(output_dir, f"loop_video_{duration_minutes}min_{timestamp}.mp4")
+            safe_title = self.sanitize_filename(title)
+            if safe_title:
+                filename = f"{safe_title}_{duration_minutes}min.mp4"
+                filename = self.get_unique_filename(output_dir, filename)
+                output_file = os.path.join(output_dir, filename)
+            else:
+                output_file = os.path.join(output_dir, f"loop_video_{duration_minutes}min_{timestamp}.mp4")
             
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
@@ -195,7 +236,7 @@ class VideoGenerator:
         finally:
             self.cleanup_temp_directory()
     
-    def create_melody_video(self, melody_files, background_files, output_dir):
+    def create_melody_video(self, melody_files, background_files, output_dir, title=""):
         """メドレー動画を作成"""
         print("メドレー動画を作成中...")
         
@@ -205,7 +246,13 @@ class VideoGenerator:
         try:
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = os.path.join(output_dir, f"melody_video_{timestamp}.mp4")
+            safe_title = self.sanitize_filename(title)
+            if safe_title:
+                filename = f"{safe_title}_melody.mp4"
+                filename = self.get_unique_filename(output_dir, filename)
+                output_file = os.path.join(output_dir, filename)
+            else:
+                output_file = os.path.join(output_dir, f"melody_video_{timestamp}.mp4")
             
             # 動画ファイルを連結
             concat_file = os.path.join(temp_dir, "concat.txt")
@@ -278,7 +325,7 @@ class VideoGenerator:
         finally:
             self.cleanup_temp_directory()
     
-    def create_short_version(self, bgm_file, background_files, output_dir, duration_seconds):
+    def create_short_version(self, bgm_file, background_files, output_dir, duration_seconds, title=""):
         """SNS用ショートバージョン動画を作成"""
         print(f"SNS用ショートバージョン動画を作成中... ({duration_seconds}秒)")
         
@@ -293,7 +340,13 @@ class VideoGenerator:
             
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_file = os.path.join(output_dir, f"short_video_{duration_seconds}s_{timestamp}.mp4")
+            safe_title = self.sanitize_filename(title)
+            if safe_title:
+                filename = f"{safe_title}_short_{duration_seconds}s.mp4"
+                filename = self.get_unique_filename(output_dir, filename)
+                output_file = os.path.join(output_dir, filename)
+            else:
+                output_file = os.path.join(output_dir, f"short_video_{duration_seconds}s_{timestamp}.mp4")
             
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
