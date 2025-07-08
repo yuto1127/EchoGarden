@@ -106,10 +106,13 @@ class VideoGenerator:
         temp_dir = self.create_temp_directory()
         
         try:
+            print("音声ファイルの長さを取得中...")
             # 音声の長さを取得
             audio_duration = self.get_audio_duration(bgm_file)
             if audio_duration == 0:
                 raise ValueError("音声ファイルの長さを取得できませんでした")
+            
+            print(f"音声の長さ: {audio_duration:.2f}秒")
             
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -121,9 +124,13 @@ class VideoGenerator:
             else:
                 output_file = os.path.join(output_dir, f"single_video_{timestamp}.mp4")
             
+            print(f"出力ファイル: {output_file}")
+            
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
+            print(f"使用する背景: {os.path.basename(background_file)}")
             
+            print("FFmpegで動画を作成中...")
             # FFmpegコマンドを構築
             cmd = [
                 self.ffmpeg_path,
@@ -159,10 +166,25 @@ class VideoGenerator:
         temp_dir = self.create_temp_directory()
         
         try:
+            print("音声ファイルの長さを取得中...")
             # 音声の長さを取得
             audio_duration = self.get_audio_duration(bgm_file)
             if audio_duration == 0:
                 raise ValueError("音声ファイルの長さを取得できませんでした")
+            
+            print(f"音声の長さ: {audio_duration:.2f}秒")
+            
+            # 目標時間（秒）
+            target_duration = duration_minutes * 60
+            print(f"目標時間: {target_duration}秒 ({duration_minutes}分)")
+            
+            # 音声をループして目標時間に達するまで繰り返す
+            loop_count = int(target_duration / audio_duration) + 1
+            print(f"ループ回数: {loop_count}回")
+            
+            print("音声ファイルを連結中...")
+            # ループ用の音声ファイルを作成
+            loop_audio_file = os.path.join(temp_dir, "loop_audio.mp3")
             
             # 目標時間（秒）
             target_duration = duration_minutes * 60
@@ -193,8 +215,11 @@ class VideoGenerator:
             if result.returncode != 0:
                 raise RuntimeError(f"音声の連結に失敗しました: {result.stderr}")
             
+            print("音声の連結が完了しました")
+            
             # 最終的な音声の長さを取得
             final_audio_duration = self.get_audio_duration(loop_audio_file)
+            print(f"最終的な音声の長さ: {final_audio_duration:.2f}秒")
             
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -206,8 +231,13 @@ class VideoGenerator:
             else:
                 output_file = os.path.join(output_dir, f"loop_video_{duration_minutes}min_{timestamp}.mp4")
             
+            print(f"出力ファイル: {output_file}")
+            
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
+            print(f"使用する背景: {os.path.basename(background_file)}")
+            
+            print("FFmpegで動画を作成中...")
             
             # FFmpegコマンドを構築
             cmd = [
@@ -239,6 +269,7 @@ class VideoGenerator:
     def create_melody_video(self, melody_files, background_files, output_dir, title=""):
         """メドレー動画を作成"""
         print("メドレー動画を作成中...")
+        print(f"連結する動画数: {len(melody_files)}個")
         
         # 一時ディレクトリを作成
         temp_dir = self.create_temp_directory()
@@ -254,6 +285,10 @@ class VideoGenerator:
             else:
                 output_file = os.path.join(output_dir, f"melody_video_{timestamp}.mp4")
             
+            print(f"出力ファイル: {output_file}")
+            
+            print("動画ファイルを連結中...")
+            
             # 動画ファイルを連結
             concat_file = os.path.join(temp_dir, "concat.txt")
             with open(concat_file, 'w') as f:
@@ -262,7 +297,9 @@ class VideoGenerator:
             
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
+            print(f"使用する背景: {os.path.basename(background_file)}")
             
+            print("背景動画を作成中...")
             # 一時的な動画ファイルを作成（背景画像のみ）
             temp_video = os.path.join(temp_dir, "temp_background.mp4")
             
@@ -283,6 +320,9 @@ class VideoGenerator:
             if result.returncode != 0:
                 raise RuntimeError(f"背景動画の作成に失敗しました: {result.stderr}")
             
+            print("背景動画の作成が完了しました")
+            
+            print("メドレー動画を連結中...")
             # メドレー動画を連結
             temp_concat = os.path.join(temp_dir, "temp_concat.mp4")
             
@@ -300,6 +340,9 @@ class VideoGenerator:
             if result.returncode != 0:
                 raise RuntimeError(f"動画の連結に失敗しました: {result.stderr}")
             
+            print("メドレー動画の連結が完了しました")
+            
+            print("最終的な動画を作成中...")
             # 最終的な動画を作成（背景画像 + メドレー音声）
             cmd_final = [
                 self.ffmpeg_path,
@@ -333,10 +376,14 @@ class VideoGenerator:
         temp_dir = self.create_temp_directory()
         
         try:
+            print("音声ファイルの長さを取得中...")
             # 音声の長さを取得
             audio_duration = self.get_audio_duration(bgm_file)
             if audio_duration == 0:
                 raise ValueError("音声ファイルの長さを取得できませんでした")
+            
+            print(f"元の音声の長さ: {audio_duration:.2f}秒")
+            print(f"トリム後の長さ: {duration_seconds}秒")
             
             # 出力ファイル名を生成
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -348,8 +395,13 @@ class VideoGenerator:
             else:
                 output_file = os.path.join(output_dir, f"short_video_{duration_seconds}s_{timestamp}.mp4")
             
+            print(f"出力ファイル: {output_file}")
+            
             # 背景画像をランダムに選択
             background_file = random.choice(background_files)
+            print(f"使用する背景: {os.path.basename(background_file)}")
+            
+            print("音声をトリム中...")
             
             # 音声を指定時間にトリム
             trimmed_audio_file = os.path.join(temp_dir, "trimmed_audio.mp3")
@@ -367,8 +419,13 @@ class VideoGenerator:
             if result.returncode != 0:
                 raise RuntimeError(f"音声のトリムに失敗しました: {result.stderr}")
             
+            print("音声のトリムが完了しました")
+            
             # 最終的な音声の長さを取得
             final_audio_duration = self.get_audio_duration(trimmed_audio_file)
+            print(f"トリム後の音声の長さ: {final_audio_duration:.2f}秒")
+            
+            print("FFmpegで縦型動画を作成中...")
             
             # FFmpegコマンドを構築（縦型動画用）
             cmd = [

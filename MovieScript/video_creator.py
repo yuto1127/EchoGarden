@@ -35,9 +35,86 @@ class VideoCreatorApp:
         
         # 設定ファイルの読み込み
         self.config_file = Path(__file__).parent / "config.json"
-        self.load_config()
         
-        self.create_widgets()
+        # 起動時のローディング画面を表示
+        self.show_loading_screen()
+        
+        # 初期化処理を別スレッドで実行
+        self.init_app()
+    
+    def show_loading_screen(self):
+        """起動時のローディング画面を表示"""
+        # ローディングフレーム
+        self.loading_frame = ttk.Frame(self.root)
+        self.loading_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        
+        # ロゴ・タイトル
+        title_label = ttk.Label(self.loading_frame, text="EchoGarden", 
+                               font=('Arial', 24, 'bold'))
+        title_label.pack(pady=(0, 10))
+        
+        subtitle_label = ttk.Label(self.loading_frame, text="動画作成ツール", 
+                                  font=('Arial', 14))
+        subtitle_label.pack(pady=(0, 30))
+        
+        # プログレスバー
+        self.loading_progress = ttk.Progressbar(self.loading_frame, mode='indeterminate', 
+                                              length=300)
+        self.loading_progress.pack(pady=(0, 20))
+        
+        # ステータスラベル
+        self.loading_status = ttk.Label(self.loading_frame, text="初期化中...", 
+                                       font=('Arial', 10))
+        self.loading_status.pack()
+        
+        # プログレスバーを開始
+        self.loading_progress.start()
+    
+    def init_app(self):
+        """アプリケーションの初期化処理"""
+        def init_thread():
+            try:
+                # 設定ファイルの読み込み
+                self.loading_status.config(text="設定ファイルを読み込み中...")
+                self.root.update()
+                self.load_config()
+                
+                # FFmpegの確認
+                self.loading_status.config(text="FFmpegを確認中...")
+                self.root.update()
+                from video_generator import VideoGenerator
+                generator = VideoGenerator()
+                
+                # メインウィジェットの作成
+                self.loading_status.config(text="GUIを初期化中...")
+                self.root.update()
+                self.create_widgets()
+                
+                # ローディング画面を非表示
+                self.loading_status.config(text="完了！")
+                self.root.update()
+                self.root.after(500, self.hide_loading_screen)
+                
+            except Exception as e:
+                self.loading_status.config(text=f"エラー: {str(e)}")
+                self.root.update()
+                self.root.after(2000, self.show_error_and_exit, str(e))
+        
+        # 別スレッドで初期化を実行
+        import threading
+        thread = threading.Thread(target=init_thread)
+        thread.daemon = True
+        thread.start()
+    
+    def hide_loading_screen(self):
+        """ローディング画面を非表示にする"""
+        if hasattr(self, 'loading_frame'):
+            self.loading_frame.destroy()
+    
+    def show_error_and_exit(self, error_message):
+        """エラーを表示して終了"""
+        messagebox.showerror("起動エラー", f"アプリケーションの起動に失敗しました:\n{error_message}")
+        self.root.destroy()
         
     def load_config(self):
         """設定ファイルを読み込む"""
@@ -365,13 +442,16 @@ class VideoCreatorApp:
         """動画作成スレッド"""
         try:
             self.progress.start()
-            self.status_label.config(text="動画を作成中...")
+            self.status_label.config(text="動画作成エンジンを初期化中...")
             self.root.update()
             
             # 動画作成スクリプトを呼び出し
             from video_generator import VideoGenerator
             
             generator = VideoGenerator()
+            
+            self.status_label.config(text="動画を作成中...")
+            self.root.update()
             
             video_type = self.video_type.get()
             video_title = self.video_title.get().strip()
