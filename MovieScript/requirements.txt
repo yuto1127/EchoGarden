@@ -1,0 +1,14 @@
+# EchoGarden 動画作成ツール 依存関係
+# Python 3.7以上が必要
+
+# GUI関連
+tkinter  # Python標準ライブラリ（通常はインストール不要）
+
+# 動画処理関連
+# FFmpegはシステムにインストールする必要があります
+# macOS: brew install ffmpeg
+# Ubuntu/Debian: sudo apt install ffmpeg
+# Windows: https://ffmpeg.org/download.html からダウンロード
+
+# その他の標準ライブラリ（通常はインストール不要）
+# os, subprocess, tempfile, shutil, pathlib, datetime, json, random, threading 
